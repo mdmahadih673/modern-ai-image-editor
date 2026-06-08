@@ -1,0 +1,3320 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AuraLens AI — Cinematic Image Editor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  /* ============================================
+  CSS VARIABLES & THEME SYSTEM
+  ============================================ */
+  :root {
+  --bg-primary: #050508;
+  --bg-secondary: #0a0a12;
+  --bg-tertiary: #0f0f1a;
+  --bg-card: rgba(255, 255, 255, 0.04);
+  --bg-card-hover: rgba(255, 255, 255, 0.07);
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-glow: rgba(139, 92, 246, 0.4);
+  --text-primary: #f0f0ff;
+  --text-secondary: #9090b0;
+  --text-muted: #5a5a7a;
+  --accent-purple: #8b5cf6;
+  --accent-violet: #7c3aed;
+  --accent-blue: #3b82f6;
+  --accent-cyan: #06b6d4;
+  --accent-pink: #ec4899;
+  --gradient-primary: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 50%, #06b6d4 100%);
+  --gradient-secondary: linear-gradient(135deg, #7c3aed 0%, #ec4899 100%);
+  --gradient-glow: linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(59, 130, 246, 0.3) 100%);
+  --shadow-glow: 0 0 40px rgba(139, 92, 246, 0.25), 0 0 80px rgba(59, 130, 246, 0.1);
+  --shadow-card: 0 25px 50px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --glass-bg: rgba(10, 10, 20, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  --font-primary: 'Space Grotesk', 'Inter', sans-serif;
+  }
+
+  [data-theme="light"] {
+  --bg-primary: #f5f5ff;
+  --bg-secondary: #ededfc;
+  --bg-tertiary: #e5e5f7;
+  --bg-card: rgba(0, 0, 0, 0.04);
+  --bg-card-hover: rgba(0, 0, 0, 0.07);
+  --border-color: rgba(0, 0, 0, 0.1);
+  --text-primary: #0a0a1a;
+  --text-secondary: #4a4a6a;
+  --text-muted: #8a8aaa;
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(0, 0, 0, 0.1);
+  --shadow-card: 0 25px 50px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  }
+
+  /* ============================================
+  RESET & BASE
+  ============================================ */
+  *,
+  *::before,
+  *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  }
+
+  html {
+  scroll-behavior: smooth;
+  }
+
+  body {
+  font-family: var(--font-primary);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background 0.4s ease, color 0.4s ease;
+  }
+
+  /* ============================================
+  SCROLLBAR
+  ============================================ */
+  ::-webkit-scrollbar {
+  width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  }
+
+  ::-webkit-scrollbar-thumb {
+  background: var(--accent-purple);
+  border-radius: 3px;
+  }
+
+  /* ============================================
+  ANIMATED BACKGROUND CANVAS
+  ============================================ */
+  #bg-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  }
+
+  /* ============================================
+  FLOATING BLOBS
+  ============================================ */
+  .blob-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+  }
+
+  .blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.18;
+  animation: blobFloat linear infinite;
+  }
+
+  .blob-1 {
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, #8b5cf6, transparent 70%);
+  top: -200px;
+  left: -200px;
+  animation-duration: 25s;
+  }
+
+  .blob-2 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, #3b82f6, transparent 70%);
+  bottom: -150px;
+  right: -150px;
+  animation-duration: 30s;
+  animation-delay: -10s;
+  }
+
+  .blob-3 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, #ec4899, transparent 70%);
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation-duration: 20s;
+  animation-delay: -5s;
+  }
+
+  .blob-4 {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, #06b6d4, transparent 70%);
+  top: 20%;
+  right: 20%;
+  animation-duration: 35s;
+  animation-delay: -15s;
+  }
+
+  @keyframes blobFloat {
+
+  0%,
+  100% {
+  transform: translate(0, 0) scale(1);
+  }
+
+  25% {
+  transform: translate(30px, -20px) scale(1.05);
+  }
+
+  50% {
+  transform: translate(-20px, 30px) scale(0.95);
+  }
+
+  75% {
+  transform: translate(15px, 15px) scale(1.02);
+  }
+  }
+
+  /* ============================================
+  GLASS MORPHISM
+  ============================================ */
+  .glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  }
+
+  .glass-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  transition: var(--transition);
+  }
+
+  .glass-card:hover {
+  background: var(--bg-card-hover);
+  border-color: rgba(139, 92, 246, 0.2);
+  }
+
+  /* ============================================
+  PAGE MANAGEMENT
+  ============================================ */
+  .page {
+  display: none;
+  opacity: 0;
+  position: relative;
+  z-index: 1;
+  }
+
+  .page.active {
+  display: block;
+  animation: fadeIn 0.7s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  @keyframes fadeIn {
+  from {
+  opacity: 0;
+  transform: translateY(20px);
+  }
+
+  to {
+  opacity: 1;
+  transform: translateY(0);
+  }
+  }
+
+  @keyframes slideInRight {
+  from {
+  opacity: 0;
+  transform: translateX(40px);
+  }
+
+  to {
+  opacity: 1;
+  transform: translateX(0);
+  }
+  }
+
+  @keyframes slideInLeft {
+  from {
+  opacity: 0;
+  transform: translateX(-40px);
+  }
+
+  to {
+  opacity: 1;
+  transform: translateX(0);
+  }
+  }
+
+  @keyframes scaleIn {
+  from {
+  opacity: 0;
+  transform: scale(0.95);
+  }
+
+  to {
+  opacity: 1;
+  transform: scale(1);
+  }
+  }
+
+  /* ============================================
+  AUTH PAGE
+  ============================================ */
+  #auth-page {
+  min-height: 100vh;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  }
+
+  #auth-page.active {
+  display: flex;
+  animation: fadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  .auth-card {
+  width: 100%;
+  max-width: 520px;
+  padding: 52px 48px;
+  border-radius: 28px;
+  background: rgba(10, 10, 22, 0.92);
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  box-shadow:
+  0 0 0 1px rgba(255, 255, 255, 0.05),
+  0 40px 80px rgba(0, 0, 0, 0.7),
+  0 0 80px rgba(139, 92, 246, 0.15),
+  0 0 160px rgba(59, 130, 246, 0.08);
+  position: relative;
+  overflow: hidden;
+  }
+
+  [data-theme="light"] .auth-card {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(139, 92, 246, 0.3);
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.15), 0 0 80px rgba(139, 92, 246, 0.1);
+  }
+
+  .auth-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.8), rgba(59, 130, 246, 0.8), transparent);
+  }
+
+  .auth-card::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 28px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), transparent, rgba(59, 130, 246, 0.1));
+  pointer-events: none;
+  }
+
+  .auth-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 32px;
+  justify-content: center;
+  }
+
+  .logo-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--gradient-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(139, 92, 246, 0.4);
+  position: relative;
+  overflow: hidden;
+  }
+
+  .logo-icon::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent);
+  }
+
+  .logo-icon svg {
+  width: 26px;
+  height: 26px;
+  color: white;
+  position: relative;
+  z-index: 1;
+  }
+
+  .logo-name {
+  font-size: 24px;
+  font-weight: 700;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.5px;
+  }
+
+  .auth-heading {
+  font-size: clamp(26px, 4vw, 34px);
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 12px;
+  letter-spacing: -1px;
+  color: var(--text-primary);
+  text-align: center;
+  }
+
+  .auth-heading .cursor {
+  display: inline-block;
+  width: 3px;
+  height: 1em;
+  background: var(--accent-purple);
+  margin-left: 3px;
+  vertical-align: text-bottom;
+  animation: blink 1s step-end infinite;
+  border-radius: 2px;
+  }
+
+  @keyframes blink {
+
+  0%,
+  100% {
+  opacity: 1;
+  }
+
+  50% {
+  opacity: 0;
+  }
+  }
+
+  .auth-subtext {
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1.6;
+  margin-bottom: 36px;
+  text-align: center;
+  }
+
+  .input-group {
+  margin-bottom: 20px;
+  }
+
+  .input-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  }
+
+  .input-wrapper {
+  position: relative;
+  }
+
+  .auth-input {
+  width: 100%;
+  padding: 16px 50px 16px 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 15px;
+  font-family: var(--font-primary);
+  outline: none;
+  transition: var(--transition);
+  letter-spacing: 0.3px;
+  }
+
+  [data-theme="light"] .auth-input {
+  background: rgba(0, 0, 0, 0.04);
+  }
+
+  .auth-input:focus {
+  border-color: var(--accent-purple);
+  background: rgba(139, 92, 246, 0.08);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15), 0 0 20px rgba(139, 92, 246, 0.1);
+  }
+
+  .auth-input::placeholder {
+  color: var(--text-muted);
+  }
+
+  .toggle-visibility {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: color 0.2s;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  }
+
+  .toggle-visibility:hover {
+  color: var(--accent-purple);
+  }
+
+  .auth-btn {
+  width: 100%;
+  padding: 18px 24px;
+  background: var(--gradient-primary);
+  border: none;
+  border-radius: var(--radius-md);
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  font-family: var(--font-primary);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: var(--transition);
+  letter-spacing: 0.3px;
+  margin-bottom: 20px;
+  }
+
+  .auth-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+  }
+
+  .auth-btn:hover::before {
+  opacity: 1;
+  }
+
+  .auth-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(139, 92, 246, 0.5), 0 0 60px rgba(59, 130, 246, 0.2);
+  }
+
+  .auth-btn:active {
+  transform: translateY(0);
+  }
+
+  .auth-btn-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-md);
+  background: var(--gradient-primary);
+  filter: blur(20px);
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: -1;
+  }
+
+  .auth-btn:hover .auth-btn-glow {
+  opacity: 0.4;
+  }
+
+  .auth-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.6;
+  }
+
+  .auth-hint a {
+  color: var(--accent-purple);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+  }
+
+  .auth-hint a:hover {
+  color: var(--accent-blue);
+  }
+
+  .security-badges {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-color);
+  }
+
+  .badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+  }
+
+  .badge svg {
+  width: 14px;
+  height: 14px;
+  color: var(--accent-cyan);
+  }
+
+  /* ============================================
+  NAVBAR
+  ============================================ */
+  .navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 0 24px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--glass-bg);
+  backdrop-filter: blur(30px) saturate(200%);
+  -webkit-backdrop-filter: blur(30px) saturate(200%);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  .nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  text-decoration: none;
+  }
+
+  .nav-logo {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: var(--gradient-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+  }
+
+  .nav-logo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), transparent);
+  }
+
+  .nav-logo svg {
+  width: 20px;
+  height: 20px;
+  color: white;
+  position: relative;
+  z-index: 1;
+  }
+
+  .nav-name {
+  font-size: 18px;
+  font-weight: 700;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.4px;
+  }
+
+  .nav-tagline {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 400;
+  letter-spacing: 0.5px;
+  }
+
+  .nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  }
+
+  .api-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: var(--transition);
+  }
+
+  .status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: pulse 2s ease-in-out infinite;
+  flex-shrink: 0;
+  }
+
+  @keyframes pulse {
+
+  0%,
+  100% {
+  opacity: 1;
+  transform: scale(1);
+  }
+
+  50% {
+  opacity: 0.7;
+  transform: scale(0.85);
+  }
+  }
+
+  .theme-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  }
+
+  .theme-btn:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--accent-purple);
+  color: var(--accent-purple);
+  box-shadow: 0 0 16px rgba(139, 92, 246, 0.2);
+  }
+
+  .theme-btn svg {
+  width: 18px;
+  height: 18px;
+  }
+
+  .nav-disconnect {
+  padding: 7px 14px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 10px;
+  color: #ef4444;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+  }
+
+  .nav-disconnect:hover {
+  background: rgba(239, 68, 68, 0.2);
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.2);
+  }
+
+  /* ============================================
+  DASHBOARD
+  ============================================ */
+  #dashboard-page {
+  padding-top: 70px;
+  min-height: 100vh;
+  }
+
+  #dashboard-page.active {
+  display: block;
+  }
+
+  .dashboard-container {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 32px 24px 48px;
+  }
+
+  .dashboard-header {
+  text-align: center;
+  margin-bottom: 40px;
+  animation: fadeIn 0.8s ease forwards;
+  }
+
+  .dashboard-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-purple);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  }
+
+  .dashboard-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-purple);
+  box-shadow: 0 0 6px var(--accent-purple);
+  animation: pulse 2s ease-in-out infinite;
+  }
+
+  .dashboard-title {
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 800;
+  letter-spacing: -1.5px;
+  line-height: 1.1;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  }
+
+  .dashboard-title .gradient-text {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  }
+
+  .dashboard-subtitle {
+  font-size: 16px;
+  color: var(--text-secondary);
+  font-weight: 400;
+  max-width: 500px;
+  margin: 0 auto;
+  line-height: 1.6;
+  }
+
+  /* ============================================
+  MAIN GRID LAYOUT
+  ============================================ */
+  .editor-grid {
+  display: grid;
+  grid-template-columns: 400px 1fr;
+  gap: 24px;
+  align-items: start;
+  }
+
+  @media (max-width: 1100px) {
+  .editor-grid {
+  grid-template-columns: 1fr;
+  }
+  }
+
+  /* ============================================
+  LEFT PANEL
+  ============================================ */
+  .left-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: slideInLeft 0.7s ease forwards;
+  }
+
+  /* Upload Zone */
+  .upload-zone {
+  position: relative;
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
+  border: 2px dashed var(--border-color);
+  padding: 40px 28px;
+  text-align: center;
+  cursor: pointer;
+  transition: var(--transition);
+  overflow: hidden;
+  }
+
+  .upload-zone::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--gradient-glow);
+  opacity: 0;
+  transition: opacity 0.3s;
+  }
+
+  .upload-zone:hover::before {
+  opacity: 1;
+  }
+
+  .upload-zone:hover,
+  .upload-zone.drag-over {
+  border-color: var(--accent-purple);
+  background: rgba(139, 92, 246, 0.05);
+  box-shadow: 0 0 40px rgba(139, 92, 246, 0.15), inset 0 0 30px rgba(139, 92, 246, 0.05);
+  }
+
+  .upload-zone.drag-over {
+  border-style: solid;
+  }
+
+  .upload-icon-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 18px;
+  transition: var(--transition);
+  position: relative;
+  }
+
+  .upload-zone:hover .upload-icon-wrap {
+  background: rgba(139, 92, 246, 0.25);
+  transform: scale(1.05);
+  box-shadow: 0 8px 30px rgba(139, 92, 246, 0.3);
+  }
+
+  .upload-icon-wrap svg {
+  width: 32px;
+  height: 32px;
+  color: var(--accent-purple);
+  }
+
+  .upload-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+  }
+
+  .upload-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 18px;
+  line-height: 1.5;
+  }
+
+  .upload-formats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  }
+
+  .format-tag {
+  padding: 3px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  }
+
+  [data-theme="light"] .format-tag {
+  background: rgba(0, 0, 0, 0.05);
+  }
+
+  #image-input {
+  display: none;
+  }
+
+  .upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 22px;
+  background: var(--gradient-primary);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-primary);
+  cursor: pointer;
+  transition: var(--transition);
+  margin-top: 14px;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+  }
+
+  .upload-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+  }
+
+  .upload-btn:hover::before {
+  opacity: 1;
+  }
+
+  .upload-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(139, 92, 246, 0.5);
+  }
+
+  .upload-btn svg {
+  width: 16px;
+  height: 16px;
+  }
+
+  /* Prompt Section */
+  .panel-section {
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  transition: var(--transition);
+  }
+
+  .panel-section:hover {
+  border-color: rgba(139, 92, 246, 0.2);
+  }
+
+  .section-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  }
+
+  .section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  }
+
+  .section-title::before {
+  content: '';
+  width: 3px;
+  height: 14px;
+  background: var(--gradient-primary);
+  border-radius: 2px;
+  }
+
+  .prompt-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: var(--font-primary);
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+  transition: var(--transition);
+  margin-bottom: 14px;
+  }
+
+  [data-theme="light"] .prompt-textarea {
+  background: rgba(0, 0, 0, 0.03);
+  }
+
+  .prompt-textarea:focus {
+  border-color: var(--accent-purple);
+  background: rgba(139, 92, 246, 0.04);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+  }
+
+  .prompt-textarea::placeholder {
+  color: var(--text-muted);
+  }
+
+  .prompt-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  }
+
+  .char-count {
+  font-size: 12px;
+  color: var(--text-muted);
+  }
+
+  .copy-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--font-primary);
+  cursor: pointer;
+  transition: var(--transition);
+  }
+
+  .copy-btn:hover {
+  border-color: var(--accent-purple);
+  color: var(--accent-purple);
+  }
+
+  .copy-btn svg {
+  width: 13px;
+  height: 13px;
+  }
+
+  /* Chips */
+  .chips-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  }
+
+  .prompt-chip {
+  padding: 6px 13px;
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent-purple);
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+  }
+
+  .prompt-chip:hover {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: var(--accent-purple);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.25);
+  }
+
+  /* Generate Button */
+  .generate-btn {
+  width: 100%;
+  padding: 20px 28px;
+  background: var(--gradient-primary);
+  border: none;
+  border-radius: var(--radius-md);
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  font-family: var(--font-primary);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  letter-spacing: 0.3px;
+  }
+
+  .generate-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+  }
+
+  .generate-btn:hover:not(:disabled)::before {
+  opacity: 1;
+  }
+
+  .generate-btn:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow:
+  0 16px 50px rgba(139, 92, 246, 0.55),
+  0 0 80px rgba(59, 130, 246, 0.2),
+  0 0 0 1px rgba(255, 255, 255, 0.1);
+  }
+
+  .generate-btn:active:not(:disabled) {
+  transform: translateY(-1px);
+  }
+
+  .generate-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  }
+
+  .generate-btn-glow {
+  position: absolute;
+  inset: -2px;
+  border-radius: calc(var(--radius-md) + 2px);
+  background: var(--gradient-primary);
+  filter: blur(16px);
+  opacity: 0;
+  z-index: -1;
+  transition: opacity 0.4s;
+  }
+
+  .generate-btn:hover:not(:disabled) .generate-btn-glow {
+  opacity: 0.4;
+  }
+
+  .generate-btn svg {
+  width: 20px;
+  height: 20px;
+  }
+
+  /* Spinner */
+  .spinner {
+  width: 20px;
+  height: 20px;
+  border: 2.5px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+  }
+
+  @keyframes spin {
+  to {
+  transform: rotate(360deg);
+  }
+  }
+
+  /* ============================================
+  RIGHT PANEL
+  ============================================ */
+  .right-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: slideInRight 0.7s ease forwards;
+  }
+
+  .preview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  }
+
+  @media (max-width: 700px) {
+  .preview-grid {
+  grid-template-columns: 1fr;
+  }
+  }
+
+  .preview-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: var(--transition);
+  position: relative;
+  }
+
+  .preview-card:hover {
+  border-color: rgba(139, 92, 246, 0.25);
+  }
+
+  .preview-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  }
+
+  .preview-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  }
+
+  .preview-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  }
+
+  .preview-dot.original {
+  background: #f59e0b;
+  }
+
+  .preview-dot.edited {
+  background: #10b981;
+  box-shadow: 0 0 6px #10b981;
+  animation: pulse 2s infinite;
+  }
+
+  .preview-actions {
+  display: flex;
+  gap: 6px;
+  }
+
+  .preview-action-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: var(--transition);
+  }
+
+  .preview-action-btn:hover {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: var(--accent-purple);
+  color: var(--accent-purple);
+  }
+
+  .preview-action-btn svg {
+  width: 13px;
+  height: 13px;
+  }
+
+  .preview-body {
+  position: relative;
+  background: rgba(0, 0, 0, 0.3);
+  min-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  }
+
+  [data-theme="light"] .preview-body {
+  background: rgba(0, 0, 0, 0.07);
+  }
+
+  .preview-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 32px 20px;
+  }
+
+  .preview-placeholder svg {
+  width: 36px;
+  height: 36px;
+  color: var(--text-muted);
+  opacity: 0.5;
+  }
+
+  .preview-placeholder p {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  }
+
+  .preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+  cursor: zoom-in;
+  transition: transform 0.4s ease;
+  }
+
+  .preview-img.loaded {
+  display: block;
+  animation: scaleIn 0.5s ease forwards;
+  }
+
+  .preview-img:hover {
+  transform: scale(1.02);
+  }
+
+  /* Loading Overlay */
+  .loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 5, 8, 0.85);
+  backdrop-filter: blur(10px);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  z-index: 10;
+  }
+
+  .loading-overlay.active {
+  display: flex;
+  }
+
+  .loading-spinner-large {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 3px solid rgba(139, 92, 246, 0.2);
+  border-top-color: var(--accent-purple);
+  border-right-color: var(--accent-blue);
+  animation: spin 1s linear infinite;
+  }
+
+  .loading-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  }
+
+  .loading-progress {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  max-width: 160px;
+  }
+
+  /* ============================================
+  BEFORE/AFTER SLIDER
+  ============================================ */
+  .comparison-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: var(--transition);
+  }
+
+  .comparison-section:hover {
+  border-color: rgba(139, 92, 246, 0.2);
+  }
+
+  .comparison-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  }
+
+  .comparison-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  }
+
+  .comparison-title svg {
+  width: 16px;
+  height: 16px;
+  color: var(--accent-cyan);
+  }
+
+  .comparison-container {
+  position: relative;
+  min-height: 300px;
+  background: rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  }
+
+  [data-theme="light"] .comparison-container {
+  background: rgba(0, 0, 0, 0.07);
+  }
+
+  .comparison-placeholder {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+  }
+
+  .comparison-placeholder svg {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 12px;
+  opacity: 0.4;
+  }
+
+  .comparison-placeholder p {
+  font-size: 14px;
+  }
+
+  #comparison-wrap {
+  display: none;
+  position: relative;
+  width: 100%;
+  height: 300px;
+  }
+
+  #comparison-wrap.active {
+  display: block;
+  }
+
+  .comparison-img-wrap {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  }
+
+  .comparison-after-wrap {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  clip-path: inset(0 50% 0 0);
+  transition: clip-path 0s;
+  }
+
+  .comp-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  }
+
+  .comparison-divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 3px;
+  background: white;
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.6);
+  cursor: ew-resize;
+  z-index: 10;
+  transform: translateX(-50%);
+  }
+
+  .comparison-handle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #111;
+  cursor: ew-resize;
+  }
+
+  .comparison-handle svg {
+  width: 18px;
+  height: 18px;
+  }
+
+  .comp-label {
+  position: absolute;
+  top: 12px;
+  padding: 4px 10px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  }
+
+  .comp-label-before {
+  left: 12px;
+  }
+
+  .comp-label-after {
+  right: 12px;
+  }
+
+  /* ============================================
+  BOTTOM ACTIONS
+  ============================================ */
+  .bottom-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  }
+
+  .download-btn {
+  flex: 1;
+  min-width: 180px;
+  padding: 16px 24px;
+  background: var(--gradient-primary);
+  border: none;
+  border-radius: var(--radius-md);
+  color: white;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: var(--font-primary);
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  position: relative;
+  overflow: hidden;
+  }
+
+  .download-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+  }
+
+  .download-btn:hover:not(:disabled)::before {
+  opacity: 1;
+  }
+
+  .download-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(139, 92, 246, 0.5);
+  }
+
+  .download-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  }
+
+  .download-btn svg {
+  width: 18px;
+  height: 18px;
+  }
+
+  .reset-btn {
+  padding: 16px 22px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: var(--radius-md);
+  color: #ef4444;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-primary);
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  }
+
+  .reset-btn:hover {
+  background: rgba(239, 68, 68, 0.18);
+  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.2);
+  }
+
+  .reset-btn svg {
+  width: 15px;
+  height: 15px;
+  }
+
+  /* ============================================
+  HISTORY SECTION
+  ============================================ */
+  .history-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  animation: fadeIn 0.9s ease forwards;
+  }
+
+  .history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  }
+
+  .history-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 10px;
+  min-height: 60px;
+  }
+
+  .history-item {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: var(--transition);
+  aspect-ratio: 1;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  }
+
+  .history-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  }
+
+  .history-item:hover {
+  border-color: var(--accent-purple);
+  transform: scale(1.04);
+  box-shadow: 0 8px 24px rgba(139, 92, 246, 0.3);
+  }
+
+  .history-item .history-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s;
+  }
+
+  .history-item:hover .history-overlay {
+  opacity: 1;
+  }
+
+  .history-overlay svg {
+  width: 20px;
+  height: 20px;
+  color: white;
+  }
+
+  .history-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  color: var(--text-muted);
+  font-size: 13px;
+  grid-column: 1 / -1;
+  }
+
+  .history-empty svg {
+  width: 28px;
+  height: 28px;
+  opacity: 0.4;
+  }
+
+  .clear-history-btn {
+  font-size: 12px;
+  font-weight: 500;
+  color: #ef4444;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: var(--transition);
+  font-family: var(--font-primary);
+  }
+
+  .clear-history-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  }
+
+  /* ============================================
+  TOAST NOTIFICATIONS
+  ============================================ */
+  .toast-container {
+  position: fixed;
+  top: 88px;
+  right: 20px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+  }
+
+  .toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  min-width: 280px;
+  max-width: 380px;
+  pointer-events: all;
+  animation: toastIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  .toast.hiding {
+  animation: toastOut 0.3s ease forwards;
+  }
+
+  @keyframes toastIn {
+  from {
+  opacity: 0;
+  transform: translateX(30px) scale(0.95);
+  }
+
+  to {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+  }
+  }
+
+  @keyframes toastOut {
+  from {
+  opacity: 1;
+  transform: translateX(0);
+  }
+
+  to {
+  opacity: 0;
+  transform: translateX(30px);
+  }
+  }
+
+  .toast-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  }
+
+  .toast-icon svg {
+  width: 16px;
+  height: 16px;
+  color: white;
+  }
+
+  .toast.success .toast-icon {
+  background: #10b981;
+  }
+
+  .toast.error .toast-icon {
+  background: #ef4444;
+  }
+
+  .toast.info .toast-icon {
+  background: #3b82f6;
+  }
+
+  .toast.warning .toast-icon {
+  background: #f59e0b;
+  }
+
+  .toast-content {
+  flex: 1;
+  }
+
+  .toast-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+  }
+
+  .toast-msg {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  }
+
+  /* ============================================
+  ZOOM MODAL
+  ============================================ */
+  .zoom-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1001;
+  background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(20px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  }
+
+  .zoom-modal.active {
+  display: flex;
+  animation: fadeIn 0.3s ease forwards;
+  }
+
+  .zoom-modal-inner {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  }
+
+  .zoom-modal img {
+  max-width: 100%;
+  max-height: 90vh;
+  border-radius: 14px;
+  object-fit: contain;
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.8);
+  }
+
+  .zoom-close {
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: white;
+  transition: var(--transition);
+  }
+
+  .zoom-close:hover {
+  background: rgba(239, 68, 68, 0.4);
+  }
+
+  .zoom-close svg {
+  width: 16px;
+  height: 16px;
+  }
+
+  /* ============================================
+  PARTICLES
+  ============================================ */
+  .particle {
+  position: fixed;
+  pointer-events: none;
+  z-index: 0;
+  border-radius: 50%;
+  background: rgba(139, 92, 246, 0.3);
+  animation: particleFloat linear infinite;
+  }
+
+  @keyframes particleFloat {
+  0% {
+  transform: translateY(100vh) rotate(0deg);
+  opacity: 0;
+  }
+
+  10% {
+  opacity: 1;
+  }
+
+  90% {
+  opacity: 1;
+  }
+
+  100% {
+  transform: translateY(-100px) rotate(720deg);
+  opacity: 0;
+  }
+  }
+
+  /* ============================================
+  RESPONSIVE
+  ============================================ */
+  @media (max-width: 768px) {
+  .auth-card {
+  padding: 36px 24px;
+  }
+
+  .dashboard-container {
+  padding: 24px 16px 40px;
+  }
+
+  .navbar {
+  padding: 0 16px;
+  }
+
+  .nav-tagline {
+  display: none;
+  }
+
+  .nav-right {
+  gap: 8px;
+  }
+
+  .api-status {
+  padding: 5px 10px;
+  font-size: 11px;
+  }
+
+  .nav-disconnect {
+  display: none;
+  }
+
+  .bottom-actions {
+  flex-direction: column;
+  }
+
+  .download-btn,
+  .reset-btn {
+  width: 100%;
+  }
+  }
+
+  @media (max-width: 480px) {
+  .editor-grid {
+  gap: 16px;
+  }
+
+  .preview-grid {
+  grid-template-columns: 1fr;
+  }
+
+  .dashboard-header {
+  margin-bottom: 28px;
+  }
+  }
+
+  /* ============================================
+  SHIMMER ANIMATION
+  ============================================ */
+  .shimmer {
+  position: relative;
+  overflow: hidden;
+  }
+
+  .shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.04), transparent);
+  animation: shimmer 2s infinite;
+  }
+
+  @keyframes shimmer {
+  0% {
+  transform: translateX(-100%);
+  }
+
+  100% {
+  transform: translateX(100%);
+  }
+  }
+
+  /* ============================================
+  MODEL SELECTOR
+  ============================================ */
+  .model-selector {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  }
+
+  .model-chip {
+  flex: 1;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: center;
+  font-family: var(--font-primary);
+  }
+
+  .model-chip.active {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: var(--accent-purple);
+  color: var(--accent-purple);
+  }
+
+  .model-chip:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(139, 92, 246, 0.3);
+  }
+
+  /* Edit strength */
+  .slider-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+  }
+
+  .slider-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  min-width: 80px;
+  }
+
+  .range-input {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: var(--border-color);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  }
+
+  .range-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--gradient-primary);
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.5);
+  cursor: pointer;
+  }
+
+  .range-val {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-purple);
+  min-width: 28px;
+  text-align: right;
+  }
+  </style>
+  </head>
+
+  <body>
+
+    <!-- Background Blobs -->
+    <div class="blob-container" id="blob-container">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+      <div class="blob blob-4"></div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Zoom Modal -->
+    <div class="zoom-modal" id="zoom-modal">
+      <div class="zoom-modal-inner">
+        <button class="zoom-close" id="zoom-close">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        <img id="zoom-img" src="" alt="Preview" />
+      </div>
+    </div>
+
+    <!-- ==========================================
+     AUTH PAGE
+========================================== -->
+    <div id="auth-page" class="page">
+      <div class="auth-card">
+        <div class="auth-logo">
+          <div class="logo-icon">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
+            </svg>
+          </div>
+          <span class="logo-name">AuraLens AI</span>
+        </div>
+
+        <h1 class="auth-heading">
+          <span id="typing-text"></span><span class="cursor"></span>
+        </h1>
+        <p class="auth-subtext">Connect your Gemini API key to unlock AI-powered cinematic photo editing. Your key is
+          stored securely in your browser.</p>
+
+        <div class="input-group">
+          <label class="input-label" for="api-key-input">Gemini API Key</label>
+          <div class="input-wrapper">
+            <input type="password" id="api-key-input" class="auth-input"
+              placeholder="AIza••••••••••••••••••••••••••••••••••••••" autocomplete="off" spellcheck="false" />
+            <button class="toggle-visibility" id="toggle-visibility" type="button" title="Show/Hide key">
+              <svg id="eye-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="18"
+                height="18">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <button class="auth-btn" id="save-api-btn">
+          <div class="auth-btn-glow"></div>
+          <span id="auth-btn-text">Save API Key & Enter Studio</span>
+        </button>
+
+        <p class="auth-hint">
+          Don't have an API key? <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Get one
+            free from Google AI Studio</a>
+        </p>
+
+        <div class="security-badges">
+          <div class="badge">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+            </svg>
+            Encrypted
+          </div>
+          <div class="badge">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+            </svg>
+            Local Only
+          </div>
+          <div class="badge">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" />
+            </svg>
+            Zero Server
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========================================
+     DASHBOARD PAGE
+========================================== -->
+    <div id="dashboard-page" class="page">
+
+      <!-- Navbar -->
+      <nav class="navbar">
+        <a class="nav-brand" href="#">
+          <div class="nav-logo">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+            </svg>
+          </div>
+          <div>
+            <div class="nav-name">AuraLens AI</div>
+            <div class="nav-tagline">Cinematic Image Studio</div>
+          </div>
+        </a>
+
+        <div class="nav-right">
+          <div class="api-status" id="api-status-indicator">
+            <div class="status-dot"></div>
+            <span>Gemini Connected</span>
+          </div>
+          <button class="theme-btn" id="theme-toggle" title="Toggle theme">
+            <svg id="theme-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+            </svg>
+          </button>
+          <button class="nav-disconnect" id="nav-disconnect">Disconnect</button>
+        </div>
+      </nav>
+
+      <!-- Dashboard Content -->
+      <div class="dashboard-container">
+
+        <!-- Header -->
+        <div class="dashboard-header">
+          <div class="dashboard-badge">AI-Powered Cinematic Editor</div>
+          <h1 class="dashboard-title">
+            Transform Photos into<br />
+            <span class="gradient-text">Cinematic Masterpieces</span>
+          </h1>
+          <p class="dashboard-subtitle">Upload your image, write a prompt, and let AI craft stunning editorial-quality
+            photography.</p>
+        </div>
+
+        <!-- Editor Grid -->
+        <div class="editor-grid">
+
+          <!-- LEFT PANEL -->
+          <div class="left-panel">
+
+            <!-- Upload Zone -->
+            <div class="upload-zone" id="upload-zone">
+              <div class="upload-icon-wrap">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                </svg>
+              </div>
+              <div class="upload-title">Drop your image here</div>
+              <div class="upload-desc">Drag & drop or browse to upload your photo for AI cinematic editing</div>
+              <div class="upload-formats">
+                <span class="format-tag">JPG</span>
+                <span class="format-tag">PNG</span>
+                <span class="format-tag">WEBP</span>
+                <span class="format-tag">GIF</span>
+                <span class="format-tag">BMP</span>
+              </div>
+              <input type="file" id="image-input" accept="image/jpeg,image/png,image/webp,image/gif,image/bmp" />
+              <button class="upload-btn" id="upload-btn" type="button">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                </svg>
+                Browse Files
+              </button>
+            </div>
+
+            <!-- Model Selector -->
+            <div class="panel-section">
+              <div class="section-label">
+                <span class="section-title">AI Model</span>
+              </div>
+              <div class="model-selector" id="model-selector">
+                <button class="model-chip active" data-model="gemini-2.0-flash-preview-image-generation">Flash
+                  2.0</button>
+                <button class="model-chip" data-model="gemini-2.0-flash">Flash 2.0 Stable</button>
+              </div>
+              <div class="slider-row">
+                <span class="slider-label">Edit Strength</span>
+                <input type="range" class="range-input" id="edit-strength" min="1" max="10" value="7" />
+                <span class="range-val" id="strength-val">7</span>
+              </div>
+            </div>
+
+            <!-- Prompt Section -->
+            <div class="panel-section">
+              <div class="section-label">
+                <span class="section-title">Editing Prompt</span>
+                <button class="copy-btn" id="copy-prompt-btn">
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
+                  </svg>
+                  Copy
+                </button>
+              </div>
+              <textarea class="prompt-textarea" id="prompt-textarea"
+                placeholder="Describe how you want your image edited... (or use the default cinematic prompt)"></textarea>
+              <div class="prompt-actions">
+                <span class="char-count" id="char-count">0 / 2000</span>
+                <button class="copy-btn" id="use-default-btn"
+                  style="border-color: rgba(139,92,246,0.3); color: var(--accent-purple);">
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                  </svg>
+                  Use Cinematic
+                </button>
+              </div>
+
+              <div class="section-label" style="margin-bottom: 10px;">
+                <span class="section-title" style="font-size: 11px;">Quick Prompts</span>
+              </div>
+              <div class="chips-container" id="chips-container">
+                <button class="prompt-chip" data-prompt="cinematic">🎬 Cinematic Edit</button>
+                <button class="prompt-chip" data-prompt="portrait">📸 Portrait Pro</button>
+                <button class="prompt-chip" data-prompt="neon">🌆 Neon Vibes</button>
+                <button class="prompt-chip" data-prompt="vintage">🎞️ Film Vintage</button>
+                <button class="prompt-chip" data-prompt="studio">💡 Studio Light</button>
+                <button class="prompt-chip" data-prompt="hdr">✨ HDR Glow</button>
+                <button class="prompt-chip" data-prompt="bw">⚫ B&W Film</button>
+                <button class="prompt-chip" data-prompt="golden">🌅 Golden Hour</button>
+              </div>
+            </div>
+
+            <!-- Generate Button -->
+            <button class="generate-btn" id="generate-btn" disabled>
+              <div class="generate-btn-glow"></div>
+              <svg id="generate-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+              </svg>
+              <span id="generate-text">Generate AI Edit</span>
+            </button>
+
+          </div>
+
+          <!-- RIGHT PANEL -->
+          <div class="right-panel">
+
+            <!-- Preview Grid -->
+            <div class="preview-grid">
+
+              <!-- Original -->
+              <div class="preview-card" id="original-card">
+                <div class="preview-header">
+                  <div class="preview-label">
+                    <div class="preview-dot original"></div>
+                    Original
+                  </div>
+                  <div class="preview-actions">
+                    <button class="preview-action-btn" id="zoom-original" title="Zoom">
+                      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <div class="preview-body" id="original-body">
+                  <div class="preview-placeholder" id="original-placeholder">
+                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                    </svg>
+                    <p>Upload an image<br />to get started</p>
+                  </div>
+                  <img class="preview-img" id="original-preview" src="" alt="Original" />
+                </div>
+              </div>
+
+              <!-- Edited -->
+              <div class="preview-card" id="edited-card">
+                <div class="preview-header">
+                  <div class="preview-label">
+                    <div class="preview-dot edited" id="edited-dot"></div>
+                    AI Edited
+                  </div>
+                  <div class="preview-actions">
+                    <button class="preview-action-btn" id="zoom-edited" title="Zoom">
+                      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <div class="preview-body" id="edited-body">
+                  <div class="loading-overlay" id="loading-overlay">
+                    <div class="loading-spinner-large"></div>
+                    <div class="loading-text">AI is crafting your edit...</div>
+                    <div class="loading-progress" id="loading-progress">Analyzing image & applying cinematic grade</div>
+                  </div>
+                  <div class="preview-placeholder" id="edited-placeholder">
+                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                    </svg>
+                    <p>AI result will<br />appear here</p>
+                  </div>
+                  <img class="preview-img" id="edited-preview" src="" alt="AI Edited" />
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Before/After Comparison -->
+            <div class="comparison-section">
+              <div class="comparison-header">
+                <div class="comparison-title">
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                  </svg>
+                  Before & After Comparison
+                </div>
+              </div>
+              <div class="comparison-container" id="comparison-container">
+                <div class="comparison-placeholder" id="comparison-placeholder">
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                  </svg>
+                  <p>Generate an AI edit to see<br />the before/after comparison</p>
+                </div>
+                <div id="comparison-wrap">
+                  <div class="comparison-img-wrap">
+                    <img class="comp-img" id="comp-before" src="" alt="Before" />
+                    <span class="comp-label comp-label-before">Before</span>
+                  </div>
+                  <div class="comparison-after-wrap" id="comp-after-wrap">
+                    <img class="comp-img" id="comp-after" src="" alt="After" />
+                    <span class="comp-label comp-label-after">After</span>
+                  </div>
+                  <div class="comparison-divider" id="comp-divider">
+                    <div class="comparison-handle">
+                      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bottom Actions -->
+            <div class="bottom-actions">
+              <button class="download-btn" id="download-btn" disabled>
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+                Download HD Image
+              </button>
+              <button class="reset-btn" id="reset-btn">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                </svg>
+                Reset
+              </button>
+            </div>
+
+            <!-- History Section -->
+            <div class="history-section">
+              <div class="history-header">
+                <span class="section-title">Recent Edits</span>
+                <button class="clear-history-btn" id="clear-history-btn">Clear All</button>
+              </div>
+              <div class="history-grid" id="history-grid">
+                <div class="history-empty">
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  No edits yet. Generate your first AI edit!
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      /* ============================================================
+         APP STATE
+      ============================================================ */
+      const App = {
+        apiKey: '',
+        currentImageBase64: '',
+        currentMimeType: 'image/jpeg',
+        editedImageBase64: '',
+        isProcessing: false,
+        history: [],
+        selectedModel: 'gemini-2.0-flash-preview-image-generation',
+        theme: 'dark',
+      };
+
+      /* ============================================================
+         PROMPT LIBRARY
+      ============================================================ */
+      const PROMPTS = {
+        default: `Create a professional cinematic editorial photo edit from the uploaded image using a realistic high-end photography style. The image should look like it was captured on a Sony full-frame camera with an 85mm f/1.4 lens at f/1.6 aperture. Apply an extremely shallow depth of field with strong creamy cinematic bokeh and heavily blurred soft background while keeping the subject's face and eyes tack-sharp and highly detailed.
+
+Use soft directional key lighting with warm cinematic highlights and cool teal-toned shadows. Apply a premium modern cinematic color grade inspired by high-end editorial photography and modern iPhone photography aesthetics. The final image should feel bright, clean, natural, luxurious, and visually immersive without looking overprocessed.
+
+Maintain true-to-life skin tones and preserve natural skin texture, pores, and facial details. Perform only subtle professional editorial retouching: gently even out skin tone, remove temporary blemishes/redness only, slightly reduce under-eye darkness naturally, keep pores and realistic texture intact, avoid airbrushing completely.
+
+Add a soft luminous facial glow from the key light with subtle controlled highlight bloom on the forehead and cheekbones. Ensure rich dynamic range, filmic contrast, deep but soft blacks, clean whites, smooth highlight roll-off, subtle film grain, and ultra-clear 4K quality.
+
+IMPORTANT: Preserve identity exactly. Do NOT change facial structure. Do NOT reshape face. Do NOT alter eyes, nose, lips, jawline, or hairstyle unless requested. No beauty filter look. No plastic/waxy skin. No HDR look. No oversharpening. No heavy saturation. No extreme teal-orange grading. No halos. No artifacts. No cartoon or CGI appearance. Keep everything realistic and natural.
+
+Make the photo brighter, cleaner, and more premium like modern iPhone portrait photography. Enhance lighting and cinematic atmosphere professionally. Keep the overall aesthetic elegant, cinematic, soft, realistic, and editorial-quality.`,
+
+        cinematic: `Apply a premium cinematic editorial grade: Sony A7R IV 85mm f/1.6, creamy bokeh, soft directional key light, warm highlights, cool teal shadows, subtle film grain, rich dynamic range, filmic contrast, editorial-quality retouching, natural skin tones, no airbrushing. Final look: bright, clean, luxurious, immersive.`,
+
+        portrait: `Professional portrait enhancement: studio-quality soft box lighting, clean background separation with natural bokeh, precise skin retouching (even tone, no airbrushing, preserve texture), eyes sharp and luminous, soft catchlights, gentle highlight bloom. Aesthetic: clean, professional, modern editorial.`,
+
+        neon: `Transform this image with a futuristic neon cyberpunk aesthetic: vivid neon pink, cyan, and purple rim lighting against a dark background, lens flare accents, cinematic fog/haze, high contrast moody shadows, electric atmosphere, subtle chromatic aberration, ultra-sharp subject, stunning visual depth.`,
+
+        vintage: `Apply a cinematic film vintage look: Kodak Portra 400 emulation, warm golden-orange cast with lifted shadows, natural film grain, soft vignette, slightly desaturated highlights, organic lens imperfections, slight halation around lights, nostalgic 1970s editorial warmth, analogue photo texture.`,
+
+        studio: `Professional studio portrait lighting: dramatic three-point lighting setup with a strong key light from 45 degrees, subtle fill reducing contrast, clean white or dark grey seamless backdrop, hair light for separation, controlled catch lights in eyes, commercial advertising quality, clean and polished.`,
+
+        hdr: `Apply dramatic HDR enhancement: maximized local contrast and texture, deep punchy colors, rich cloud/sky detail, powerful shadow recovery, bright luminous highlights with smooth roll-off, ultra-detailed surfaces, vivid but not oversaturated, professional landscape/architectural photography quality.`,
+
+        bw: `Convert to stunning black and white fine art: high contrast classic silver gelatin look, deep rich blacks, luminous whites, beautiful grey midtones, pronounced skin texture and facial detail, subtle film grain, ansel adams inspired tonal range, elegant and timeless aesthetic.`,
+
+        golden: `Golden hour photography magic: warm orange-amber sunlight from low angle, long soft shadows, glowing skin with warm backlight, subtle lens flare, rich golden bokeh in background, dreamy romantic atmosphere, lifted shadows with warm shadows, soft haze, lifestyle editorial quality.`,
+      };
+
+      /* ============================================================
+         DOM ELEMENTS
+      ============================================================ */
+      const DOM = {
+        authPage: document.getElementById('auth-page'),
+        dashboardPage: document.getElementById('dashboard-page'),
+        apiKeyInput: document.getElementById('api-key-input'),
+        saveApiBtn: document.getElementById('save-api-btn'),
+        authBtnText: document.getElementById('auth-btn-text'),
+        toggleVisibility: document.getElementById('toggle-visibility'),
+        eyeIcon: document.getElementById('eye-icon'),
+        typingText: document.getElementById('typing-text'),
+
+        uploadZone: document.getElementById('upload-zone'),
+        imageInput: document.getElementById('image-input'),
+        uploadBtn: document.getElementById('upload-btn'),
+        originalPreview: document.getElementById('original-preview'),
+        originalPlaceholder: document.getElementById('original-placeholder'),
+        editedPreview: document.getElementById('edited-preview'),
+        editedPlaceholder: document.getElementById('edited-placeholder'),
+        loadingOverlay: document.getElementById('loading-overlay'),
+        loadingProgress: document.getElementById('loading-progress'),
+
+        promptTextarea: document.getElementById('prompt-textarea'),
+        charCount: document.getElementById('char-count'),
+        copyPromptBtn: document.getElementById('copy-prompt-btn'),
+        useDefaultBtn: document.getElementById('use-default-btn'),
+        chipsContainer: document.getElementById('chips-container'),
+
+        generateBtn: document.getElementById('generate-btn'),
+        generateIcon: document.getElementById('generate-icon'),
+        generateText: document.getElementById('generate-text'),
+        downloadBtn: document.getElementById('download-btn'),
+        resetBtn: document.getElementById('reset-btn'),
+
+        comparisonWrap: document.getElementById('comparison-wrap'),
+        comparisonPlaceholder: document.getElementById('comparison-placeholder'),
+        compBefore: document.getElementById('comp-before'),
+        compAfter: document.getElementById('comp-after'),
+        compAfterWrap: document.getElementById('comp-after-wrap'),
+        compDivider: document.getElementById('comp-divider'),
+
+        historyGrid: document.getElementById('history-grid'),
+        clearHistoryBtn: document.getElementById('clear-history-btn'),
+
+        themeToggle: document.getElementById('theme-toggle'),
+        themeIcon: document.getElementById('theme-icon'),
+        navDisconnect: document.getElementById('nav-disconnect'),
+        apiStatusIndicator: document.getElementById('api-status-indicator'),
+        toastContainer: document.getElementById('toast-container'),
+
+        zoomModal: document.getElementById('zoom-modal'),
+        zoomImg: document.getElementById('zoom-img'),
+        zoomClose: document.getElementById('zoom-close'),
+        zoomOriginal: document.getElementById('zoom-original'),
+        zoomEdited: document.getElementById('zoom-edited'),
+
+        modelSelector: document.getElementById('model-selector'),
+        editStrength: document.getElementById('edit-strength'),
+        strengthVal: document.getElementById('strength-val'),
+      };
+
+      /* ============================================================
+         TYPING ANIMATION
+      ============================================================ */
+      function startTypingAnimation() {
+        const texts = ['Cinematic AI Studio.', 'Your Creative Vision.', 'Premium Photo Editing.'];
+        let textIndex = 0;
+        let charIndex = 0;
+        let isDeleting = false;
+
+        function type() {
+          const currentText = texts[textIndex];
+          if (!isDeleting) {
+            DOM.typingText.textContent = currentText.slice(0, charIndex + 1);
+            charIndex++;
+            if (charIndex === currentText.length) {
+              setTimeout(() => { isDeleting = true; type(); }, 2200);
+              return;
+            }
+          } else {
+            DOM.typingText.textContent = currentText.slice(0, charIndex - 1);
+            charIndex--;
+            if (charIndex === 0) {
+              isDeleting = false;
+              textIndex = (textIndex + 1) % texts.length;
+            }
+          }
+          setTimeout(type, isDeleting ? 45 : 85);
+        }
+        type();
+      }
+
+      /* ============================================================
+         PARTICLES
+      ============================================================ */
+      function createParticles() {
+        const count = window.innerWidth < 768 ? 8 : 15;
+        for (let i = 0; i < count; i++) {
+          const el = document.createElement('div');
+          el.className = 'particle';
+          const size = Math.random() * 4 + 1;
+          el.style.cssText = `
+      width: ${size}px;
+      height: ${size}px;
+      left: ${Math.random() * 100}%;
+      animation-duration: ${Math.random() * 20 + 15}s;
+      animation-delay: ${Math.random() * 20}s;
+      opacity: ${Math.random() * 0.5 + 0.1};
+      background: ${['rgba(139,92,246,0.4)', 'rgba(59,130,246,0.4)', 'rgba(6,182,212,0.4)', 'rgba(236,72,153,0.3)'][Math.floor(Math.random() * 4)]};
+    `;
+          document.body.appendChild(el);
+        }
+      }
+
+      /* ============================================================
+         TOAST SYSTEM
+      ============================================================ */
+      function showToast(type, title, message, duration = 4000) {
+        const icons = {
+          success: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>`,
+          error: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>`,
+          info: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>`,
+          warning: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z"/></svg>`,
+        };
+
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `
+    <div class="toast-icon">${icons[type] || icons.info}</div>
+    <div class="toast-content">
+      <div class="toast-title">${title}</div>
+      ${message ? `<div class="toast-msg">${message}</div>` : ''}
+    </div>
+  `;
+
+        DOM.toastContainer.appendChild(toast);
+
+        setTimeout(() => {
+          toast.classList.add('hiding');
+          setTimeout(() => toast.remove(), 350);
+        }, duration);
+      }
+
+      /* ============================================================
+         THEME TOGGLE
+      ============================================================ */
+      function toggleTheme() {
+        App.theme = App.theme === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', App.theme);
+        localStorage.setItem('aura_theme', App.theme);
+        updateThemeIcon();
+      }
+
+      function updateThemeIcon() {
+        if (App.theme === 'light') {
+          DOM.themeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"/>`;
+        } else {
+          DOM.themeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z"/>`;
+        }
+      }
+
+      /* ============================================================
+         AUTH SYSTEM
+      ============================================================ */
+      function showAuthPage() {
+        DOM.dashboardPage.classList.remove('active');
+        DOM.authPage.classList.add('active');
+        startTypingAnimation();
+      }
+
+      function showDashboard() {
+        DOM.authPage.classList.remove('active');
+        DOM.dashboardPage.classList.add('active');
+      }
+
+      async function saveApiKey() {
+        const key = DOM.apiKeyInput.value.trim();
+        if (!key) {
+          showToast('error', 'API Key Required', 'Please enter your Gemini API key.');
+          DOM.apiKeyInput.focus();
+          return;
+        }
+        if (!key.startsWith('AI') && !key.startsWith('ai') && key.length < 20) {
+          showToast('warning', 'Invalid Format', 'Please enter a valid Gemini API key starting with "AI".');
+          return;
+        }
+
+        DOM.authBtnText.textContent = 'Verifying key...';
+        DOM.saveApiBtn.disabled = true;
+
+        // Quick test
+        try {
+          const res = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models?key=${key}`,
+            { signal: AbortSignal.timeout(8000) }
+          );
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err?.error?.message || 'Invalid API key');
+          }
+        } catch (e) {
+          if (e.name === 'TimeoutError' || e.name === 'AbortError') {
+            // Network issue - proceed anyway
+          } else if (e.message && e.message.toLowerCase().includes('api key')) {
+            DOM.authBtnText.textContent = 'Save API Key & Enter Studio';
+            DOM.saveApiBtn.disabled = false;
+            showToast('error', 'Invalid API Key', e.message);
+            return;
+          }
+        }
+
+        App.apiKey = key;
+        localStorage.setItem('aura_api_key', key);
+        showToast('success', 'API Key Saved!', 'Welcome to AuraLens AI Studio. Your key is stored locally.');
+
+        setTimeout(() => {
+          showDashboard();
+          DOM.authBtnText.textContent = 'Save API Key & Enter Studio';
+          DOM.saveApiBtn.disabled = false;
+        }, 800);
+      }
+
+      /* ============================================================
+         IMAGE HANDLING
+      ============================================================ */
+      function handleImageFile(file) {
+        if (!file || !file.type.startsWith('image/')) {
+          showToast('error', 'Invalid File', 'Please upload a valid image file.');
+          return;
+        }
+
+        const maxSize = 15 * 1024 * 1024; // 15MB
+        if (file.size > maxSize) {
+          showToast('warning', 'File Too Large', 'Please upload an image under 15MB.');
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const result = e.target.result;
+          const base64 = result.split(',')[1];
+          App.currentImageBase64 = base64;
+          App.currentMimeType = file.type;
+
+          DOM.originalPreview.src = result;
+          DOM.originalPreview.classList.add('loaded');
+          DOM.originalPlaceholder.style.display = 'none';
+
+          DOM.generateBtn.disabled = false;
+          showToast('success', 'Image Loaded!', `${file.name} — ready for AI editing.`);
+
+          // Reset edited state
+          DOM.editedPreview.classList.remove('loaded');
+          DOM.editedPreview.src = '';
+          DOM.editedPlaceholder.style.display = 'flex';
+          App.editedImageBase64 = '';
+          DOM.downloadBtn.disabled = true;
+          DOM.comparisonWrap.classList.remove('active');
+          DOM.comparisonPlaceholder.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      }
+
+      /* ============================================================
+         LOADING ANIMATION
+      ============================================================ */
+      const loadingMessages = [
+        'Analyzing image composition...',
+        'Applying cinematic color grade...',
+        'Enhancing lighting & shadows...',
+        'Adding bokeh depth of field...',
+        'Refining skin tone & texture...',
+        'Adding film grain & contrast...',
+        'Finalizing AI masterpiece...',
+      ];
+
+      let loadingMsgInterval;
+
+      function startLoadingAnimation() {
+        let i = 0;
+        DOM.loadingProgress.textContent = loadingMessages[0];
+        loadingMsgInterval = setInterval(() => {
+          i = (i + 1) % loadingMessages.length;
+          DOM.loadingProgress.textContent = loadingMessages[i];
+        }, 2200);
+      }
+
+      function stopLoadingAnimation() {
+        clearInterval(loadingMsgInterval);
+      }
+
+      /* ============================================================
+         AI GENERATION
+      ============================================================ */
+      async function generateAIEdit() {
+        if (!App.currentImageBase64) {
+          showToast('error', 'No Image', 'Please upload an image first.');
+          return;
+        }
+        if (App.isProcessing) return;
+
+        const prompt = DOM.promptTextarea.value.trim() || PROMPTS.default;
+        const strength = DOM.editStrength.value;
+        const fullPrompt = `${prompt}\n\nEdit Strength Level: ${strength}/10 — apply with proportional intensity. Return ONLY the edited image with no text or description.`;
+
+        App.isProcessing = true;
+        DOM.generateBtn.disabled = true;
+        DOM.generateIcon.style.display = 'none';
+        DOM.generateText.textContent = 'Generating...';
+
+        const spinner = document.createElement('div');
+        spinner.className = 'spinner';
+        spinner.id = 'gen-spinner';
+        DOM.generateBtn.insertBefore(spinner, DOM.generateText);
+
+        DOM.loadingOverlay.classList.add('active');
+        DOM.editedPlaceholder.style.display = 'none';
+        startLoadingAnimation();
+
+        const API_MODELS = [
+          App.selectedModel,
+          'gemini-2.0-flash-preview-image-generation',
+          'gemini-2.0-flash',
+        ];
+
+        let success = false;
+        let lastError = '';
+
+        for (const model of [...new Set(API_MODELS)]) {
+          try {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${App.apiKey}`;
+
+            const body = {
+              contents: [{
+                parts: [
+                  {
+                    inline_data: {
+                      mime_type: App.currentMimeType,
+                      data: App.currentImageBase64
+                    }
+                  },
+                  { text: fullPrompt }
+                ]
+              }],
+              generationConfig: {}
+            };
+
+            const response = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(body),
+              signal: AbortSignal.timeout(120000),
+            });
+
+            if (!response.ok) {
+              const errData = await response.json();
+              lastError = errData?.error?.message || `HTTP ${response.status}`;
+              continue;
+            }
+
+            const data = await response.json();
+            const parts = data?.candidates?.[0]?.content?.parts || [];
+            const imagePart = parts.find(p => p.inlineData?.mimeType?.startsWith('image/'));
+
+            if (!imagePart) {
+              lastError = 'No image returned. The model may not support image generation. Try Flash 2.0.';
+              continue;
+            }
+
+            App.editedImageBase64 = imagePart.inlineData.data;
+            const editedSrc = `data:${imagePart.inlineData.mimeType};base64,${App.editedImageBase64}`;
+
+            DOM.editedPreview.src = editedSrc;
+            DOM.editedPreview.classList.add('loaded');
+            DOM.editedPlaceholder.style.display = 'none';
+
+            // Before/After
+            DOM.compBefore.src = DOM.originalPreview.src;
+            DOM.compAfter.src = editedSrc;
+            DOM.comparisonPlaceholder.style.display = 'none';
+            DOM.comparisonWrap.classList.add('active');
+
+            DOM.downloadBtn.disabled = false;
+
+            // Add to history
+            addToHistory(editedSrc);
+
+            showToast('success', 'AI Edit Complete!', 'Your cinematic masterpiece is ready. Scroll down to download.');
+            success = true;
+            break;
+
+          } catch (err) {
+            lastError = err.message || 'Network error';
+            if (err.name === 'AbortError' || err.name === 'TimeoutError') {
+              lastError = 'Request timed out. Please try again.';
+              break;
+            }
+          }
+        }
+
+        if (!success) {
+          showToast('error', 'Generation Failed', lastError || 'An unexpected error occurred. Please try again.');
+          DOM.editedPlaceholder.style.display = 'flex';
+        }
+
+        // Reset button
+        stopLoadingAnimation();
+        DOM.loadingOverlay.classList.remove('active');
+        App.isProcessing = false;
+        DOM.generateBtn.disabled = !App.currentImageBase64;
+        const existingSpinner = document.getElementById('gen-spinner');
+        if (existingSpinner) existingSpinner.remove();
+        DOM.generateIcon.style.display = '';
+        DOM.generateText.textContent = 'Generate AI Edit';
+      }
+
+      /* ============================================================
+         HISTORY
+      ============================================================ */
+      function addToHistory(src) {
+        App.history.unshift(src);
+        if (App.history.length > 10) App.history.pop();
+        renderHistory();
+      }
+
+      function renderHistory() {
+        if (App.history.length === 0) {
+          DOM.historyGrid.innerHTML = `
+      <div class="history-empty">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        No edits yet. Generate your first AI edit!
+      </div>`;
+          return;
+        }
+
+        DOM.historyGrid.innerHTML = App.history.map((src, i) => `
+    <div class="history-item" data-index="${i}" title="Click to view">
+      <img src="${src}" alt="Edit ${i + 1}" loading="lazy" />
+      <div class="history-overlay">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6"/>
+        </svg>
+      </div>
+    </div>
+  `).join('');
+
+        DOM.historyGrid.querySelectorAll('.history-item').forEach(item => {
+          item.addEventListener('click', () => {
+            const idx = parseInt(item.dataset.index);
+            openZoom(App.history[idx]);
+          });
+        });
+      }
+
+      /* ============================================================
+         DOWNLOAD
+      ============================================================ */
+      function downloadImage() {
+        if (!App.editedImageBase64) return;
+        const a = document.createElement('a');
+        a.href = `data:image/png;base64,${App.editedImageBase64}`;
+        a.download = `auralens-ai-edit-${Date.now()}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        showToast('success', 'Downloading!', 'Your HD cinematic edit is being saved.');
+      }
+
+      /* ============================================================
+         RESET
+      ============================================================ */
+      function resetEditor() {
+        App.currentImageBase64 = '';
+        App.currentMimeType = 'image/jpeg';
+        App.editedImageBase64 = '';
+
+        DOM.originalPreview.src = '';
+        DOM.originalPreview.classList.remove('loaded');
+        DOM.originalPlaceholder.style.display = 'flex';
+
+        DOM.editedPreview.src = '';
+        DOM.editedPreview.classList.remove('loaded');
+        DOM.editedPlaceholder.style.display = 'flex';
+
+        DOM.comparisonWrap.classList.remove('active');
+        DOM.comparisonPlaceholder.style.display = 'block';
+
+        DOM.generateBtn.disabled = true;
+        DOM.downloadBtn.disabled = true;
+
+        DOM.imageInput.value = '';
+        DOM.promptTextarea.value = '';
+        DOM.charCount.textContent = '0 / 2000';
+
+        showToast('info', 'Editor Reset', 'Ready for a new image.');
+      }
+
+      /* ============================================================
+         BEFORE/AFTER SLIDER
+      ============================================================ */
+      function initComparisonSlider() {
+        const container = document.getElementById('comparison-container');
+        let isDragging = false;
+
+        function setPosition(x) {
+          const rect = container.getBoundingClientRect();
+          let pct = (x - rect.left) / rect.width;
+          pct = Math.max(0.02, Math.min(0.98, pct));
+          const pctNum = pct * 100;
+          DOM.compAfterWrap.style.clipPath = `inset(0 ${100 - pctNum}% 0 0)`;
+          DOM.compDivider.style.left = `${pctNum}%`;
+        }
+
+        DOM.compDivider.addEventListener('mousedown', (e) => { isDragging = true; e.preventDefault(); });
+        DOM.compDivider.addEventListener('touchstart', (e) => { isDragging = true; }, { passive: true });
+
+        window.addEventListener('mousemove', (e) => { if (isDragging) setPosition(e.clientX); });
+        window.addEventListener('touchmove', (e) => { if (isDragging && e.touches[0]) setPosition(e.touches[0].clientX); }, { passive: true });
+        window.addEventListener('mouseup', () => { isDragging = false; });
+        window.addEventListener('touchend', () => { isDragging = false; });
+
+        container.addEventListener('click', (e) => {
+          if (!DOM.comparisonWrap.classList.contains('active')) return;
+          setPosition(e.clientX);
+        });
+      }
+
+      /* ============================================================
+         ZOOM MODAL
+      ============================================================ */
+      function openZoom(src) {
+        DOM.zoomImg.src = src;
+        DOM.zoomModal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeZoom() {
+        DOM.zoomModal.classList.remove('active');
+        document.body.style.overflow = '';
+      }
+
+      /* ============================================================
+         PROMPT CHIPS
+      ============================================================ */
+      function setupChips() {
+        DOM.chipsContainer.querySelectorAll('.prompt-chip').forEach(chip => {
+          chip.addEventListener('click', () => {
+            const key = chip.dataset.prompt;
+            if (PROMPTS[key]) {
+              DOM.promptTextarea.value = PROMPTS[key];
+              updateCharCount();
+              showToast('info', 'Prompt Applied', `"${chip.textContent.trim()}" style loaded.`);
+            }
+          });
+        });
+      }
+
+      function updateCharCount() {
+        const len = DOM.promptTextarea.value.length;
+        DOM.charCount.textContent = `${len} / 2000`;
+        if (len > 2000) DOM.promptTextarea.value = DOM.promptTextarea.value.slice(0, 2000);
+      }
+
+      /* ============================================================
+         MODEL SELECTOR
+      ============================================================ */
+      function setupModelSelector() {
+        DOM.modelSelector.querySelectorAll('.model-chip').forEach(chip => {
+          chip.addEventListener('click', () => {
+            DOM.modelSelector.querySelectorAll('.model-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            App.selectedModel = chip.dataset.model;
+            showToast('info', 'Model Selected', `Using ${chip.textContent}`);
+          });
+        });
+      }
+
+      /* ============================================================
+         EVENT LISTENERS
+      ============================================================ */
+      function setupEventListeners() {
+        // Auth
+        DOM.saveApiBtn.addEventListener('click', saveApiKey);
+        DOM.apiKeyInput.addEventListener('keypress', e => { if (e.key === 'Enter') saveApiKey(); });
+
+        DOM.toggleVisibility.addEventListener('click', () => {
+          const isPassword = DOM.apiKeyInput.type === 'password';
+          DOM.apiKeyInput.type = isPassword ? 'text' : 'password';
+          DOM.eyeIcon.innerHTML = isPassword
+            ? `<path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"/>`
+            : `<path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>`;
+        });
+
+        // Upload
+        DOM.uploadBtn.addEventListener('click', () => DOM.imageInput.click());
+        DOM.uploadZone.addEventListener('click', (e) => {
+          if (e.target === DOM.uploadBtn || DOM.uploadBtn.contains(e.target)) return;
+          DOM.imageInput.click();
+        });
+        DOM.imageInput.addEventListener('change', e => {
+          if (e.target.files[0]) handleImageFile(e.target.files[0]);
+        });
+
+        DOM.uploadZone.addEventListener('dragover', e => {
+          e.preventDefault();
+          DOM.uploadZone.classList.add('drag-over');
+        });
+        DOM.uploadZone.addEventListener('dragleave', () => DOM.uploadZone.classList.remove('drag-over'));
+        DOM.uploadZone.addEventListener('drop', e => {
+          e.preventDefault();
+          DOM.uploadZone.classList.remove('drag-over');
+          if (e.dataTransfer.files[0]) handleImageFile(e.dataTransfer.files[0]);
+        });
+
+        // Prompt
+        DOM.promptTextarea.addEventListener('input', updateCharCount);
+        DOM.copyPromptBtn.addEventListener('click', () => {
+          const text = DOM.promptTextarea.value || PROMPTS.default;
+          navigator.clipboard.writeText(text).then(() => {
+            showToast('success', 'Copied!', 'Prompt copied to clipboard.');
+          }).catch(() => {
+            showToast('error', 'Copy Failed', 'Unable to copy to clipboard.');
+          });
+        });
+        DOM.useDefaultBtn.addEventListener('click', () => {
+          DOM.promptTextarea.value = PROMPTS.default;
+          updateCharCount();
+          showToast('info', 'Cinematic Prompt Loaded', 'Professional editorial photography prompt applied.');
+        });
+
+        // Generate
+        DOM.generateBtn.addEventListener('click', generateAIEdit);
+
+        // Download
+        DOM.downloadBtn.addEventListener('click', downloadImage);
+
+        // Reset
+        DOM.resetBtn.addEventListener('click', resetEditor);
+
+        // Theme
+        DOM.themeToggle.addEventListener('click', toggleTheme);
+
+        // Disconnect
+        DOM.navDisconnect.addEventListener('click', () => {
+          if (confirm('Disconnect your API key and return to the login screen?')) {
+            localStorage.removeItem('aura_api_key');
+            App.apiKey = '';
+            resetEditor();
+            showAuthPage();
+            DOM.apiKeyInput.value = '';
+            showToast('info', 'Disconnected', 'Your API key has been removed.');
+          }
+        });
+
+        // Zoom
+        DOM.zoomOriginal.addEventListener('click', () => {
+          if (DOM.originalPreview.src && DOM.originalPreview.classList.contains('loaded')) {
+            openZoom(DOM.originalPreview.src);
+          }
+        });
+        DOM.zoomEdited.addEventListener('click', () => {
+          if (DOM.editedPreview.src && DOM.editedPreview.classList.contains('loaded')) {
+            openZoom(DOM.editedPreview.src);
+          }
+        });
+        DOM.zoomClose.addEventListener('click', closeZoom);
+        DOM.zoomModal.addEventListener('click', e => { if (e.target === DOM.zoomModal) closeZoom(); });
+
+        // Img clicks
+        DOM.originalPreview.addEventListener('click', () => {
+          if (DOM.originalPreview.classList.contains('loaded')) openZoom(DOM.originalPreview.src);
+        });
+        DOM.editedPreview.addEventListener('click', () => {
+          if (DOM.editedPreview.classList.contains('loaded')) openZoom(DOM.editedPreview.src);
+        });
+
+        // History
+        DOM.clearHistoryBtn.addEventListener('click', () => {
+          App.history = [];
+          renderHistory();
+          showToast('info', 'History Cleared', 'All saved edits have been removed.');
+        });
+
+        // Edit strength
+        DOM.editStrength.addEventListener('input', () => {
+          DOM.strengthVal.textContent = DOM.editStrength.value;
+        });
+
+        // Keyboard
+        document.addEventListener('keydown', e => {
+          if (e.key === 'Escape') closeZoom();
+        });
+      }
+
+      /* ============================================================
+         INIT
+      ============================================================ */
+      function init() {
+        // Load saved theme
+        const savedTheme = localStorage.getItem('aura_theme') || 'dark';
+        App.theme = savedTheme;
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        updateThemeIcon();
+
+        // Check saved API key
+        const savedKey = localStorage.getItem('aura_api_key');
+        if (savedKey) {
+          App.apiKey = savedKey;
+          showDashboard();
+        } else {
+          showAuthPage();
+          startTypingAnimation();
+        }
+
+        setupEventListeners();
+        setupChips();
+        setupModelSelector();
+        initComparisonSlider();
+        createParticles();
+        renderHistory();
+      }
+
+      document.addEventListener('DOMContentLoaded', init);
+    </script>
+  </body>
+
+</html>
